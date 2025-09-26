@@ -19,7 +19,7 @@ router.get("/", async (req, res) => {
     const result = await BankDetailRepository.getAllBankDetailsWithUser(
       options
     );
-
+    
     return setApiResponse(200, true, result, null, res);
   } catch (error) {
     console.error("Error fetching bank details:", error);

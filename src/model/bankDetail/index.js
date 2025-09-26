@@ -213,7 +213,7 @@ const checkAccountNumberExists = async (accountNumber, excludeId = null) => {
 // Get bank details by user ID
 const getBankDetailsByUserId = async (userId) => {
   try {
-    return await BankDetail.findOne({ userId, isActive: true }).sort({
+    return await BankDetail.find({ userId, isActive: true }).sort({
       createdAt: -1,
     });
   } catch (error) {

@@ -92,22 +92,118 @@ connectToDb().then(() => {
 const { DateTime } = require("luxon"); // Install: npm i luxon
 
 // Cron runs every minute
-cron.schedule("*/30 * * * * *", async () => {
-  try {
-    // Current IST time
-    const now = DateTime.now().setZone("Asia/Kolkata");
+// cron.schedule("*/30 * * * * *", async () => {
+//   try {
+//     // Current IST time
+//     const now = DateTime.now().setZone("Asia/Kolkata");
 
-    const games = await Game.find({}); // get all games
+//     const games = await Game.find({}); // get all games
+
+//     for (const game of games) {
+//       console.log("hfgjhsf", game.status);
+//       if (game.status === "declared") {
+//         console.log("bdgjdfsd");
+//       }
+//       // Today's date in YYYY-MM-DD
+//       const today = now.toFormat("yyyy-LL-dd");
+
+//       // Parse game open/close times in IST
+//       const gameOpen = DateTime.fromISO(`${today}T${game.openTime}`, {
+//         zone: "Asia/Kolkata",
+//       });
+//       const gameClose = DateTime.fromISO(`${today}T${game.closeTime}`, {
+//         zone: "Asia/Kolkata",
+//       });
+
+//       let newStatus = game.status;
+
+//       if (now < gameOpen) {
+//         newStatus = "upcoming";
+//       } else if (now >= gameOpen && now <= gameClose) {
+//         newStatus = "open";
+//       } else if (now > gameClose) {
+//         newStatus = "closed";
+//       }
+
+//       // Only update if status changed
+//       if (newStatus !== game.status) {
+//         await Game.findByIdAndUpdate(game._id, { status: newStatus });
+//         console.log(`Game "${game.name}" status updated to "${newStatus}"`);
+//       }
+//     }
+
+//     console.log("✅ Game statuses checked at:", now.toISO());
+//   } catch (err) {
+//     console.error("❌ Error updating game statuses:", err);
+//   }
+// });
+
+// cron.schedule("*/30 * * * * *", async () => {
+//   try {
+//     // Current IST time
+//     const now = DateTime.now().setZone("Asia/Kolkata");
+
+//     const games = await Game.find({}); // get all games
+
+//     for (const game of games) {
+//       // Skip updating if status is already declared
+//       if (game.status === "declared") {
+//         console.log("dgfjhgfjdsg");
+//       }
+
+//       // Today's date in YYYY-MM-DD
+//       const today = now.toFormat("yyyy-LL-dd");
+
+//       // Parse game open/close times in IST
+//       const gameOpen = DateTime.fromISO(`${today}T${game.openTime}`, {
+//         zone: "Asia/Kolkata",
+//       });
+//       const gameClose = DateTime.fromISO(`${today}T${game.closeTime}`, {
+//         zone: "Asia/Kolkata",
+//       });
+
+//       let newStatus = game.status;
+
+//       if (now < gameOpen) {
+//         newStatus = "upcoming";
+//       } else if (now >= gameOpen && now <= gameClose) {
+//         newStatus = "open";
+//       } else if (now > gameClose) {
+//         newStatus = "closed";
+//       }
+
+//       // Only update if status changed
+//       if (newStatus !== game.status) {
+//         await Game.findByIdAndUpdate(game._id, { status: newStatus });
+//         console.log(`Game "${game.name}" status updated to "${newStatus}"`);
+//       }
+//     }
+
+//     console.log("✅ Game statuses checked at:", now.toISO());
+//   } catch (err) {
+//     console.error("❌ Error updating game statuses:", err);
+//   }
+// });
+
+cron.schedule("* * * * *", async () => {
+  try {
+    const now = DateTime.now().setZone("Asia/Kolkata");
+    console.log("Cron running at:", now.toISO());
+
+    const games = await Game.find({});
+    if (!games.length) {
+      console.log("No games found");
+      return;
+    }
 
     for (const game of games) {
-      console.log("hfgjhsf", game.status);
+      // Skip updating if status is already declared
       if (game.status === "declared") {
-        console.log("bdgjdfsd");
+        console.log("Game already declared, skipping:", game.name);
+        continue;
       }
-      // Today's date in YYYY-MM-DD
-      const today = now.toFormat("yyyy-LL-dd");
 
-      // Parse game open/close times in IST
+      const today = now.toFormat("yyyy-LL-dd");
       const gameOpen = DateTime.fromISO(`${today}T${game.openTime}`, {
         zone: "Asia/Kolkata",
       });
@@ -125,7 +221,6 @@ cron.schedule("*/30 * * * * *", async () => {
         newStatus = "closed";
       }
 
-      // Only update if status changed
       if (newStatus !== game.status) {
         await Game.findByIdAndUpdate(game._id, { status: newStatus });
         console.log(`Game "${game.name}" status updated to "${newStatus}"`);

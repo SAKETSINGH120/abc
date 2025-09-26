@@ -126,6 +126,19 @@ const getUserByUserId = async (userId) => {
   }
 };
 
+// Get all users referred by a specific user
+const getUsersByReferredBy = async (userId) => {
+  try {
+    const users = await dbClient
+      .find({ referredBy: userId })
+      .select("firstName number createdAt")
+      .sort({ createdAt: -1 });
+    return users;
+  } catch (error) {
+    throw new Error(`Failed to get referred users: ${error.message}`);
+  }
+};
+
 module.exports = {
   createUser,
   verifyPassword,
@@ -138,4 +151,5 @@ module.exports = {
   getAllUsers,
   getTotalUserCount,
   getUserByUserId,
+  getUsersByReferredBy,
 };

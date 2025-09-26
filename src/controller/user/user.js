@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const userRespository = require("../../model/user/index");
 const userWalletRespository = require("../../model/userWallet/walletIndex");
+const walletHistoryRepository = require("../../model/walletHistory/index");
 const bcrypt = require("bcrypt");
 const generateToken = require("../../utils/generateToken");
 const generateReferralCode = require("../../utils/generateReferralCode");
@@ -283,6 +284,36 @@ router.post("/change-password", authenticateUser, async (req, res, next) => {
     );
   } catch (error) {
     console.error("Change password error:", error.message);
+    return next(error);
+  }
+});
+
+// Get all referrals for authenticated user
+router.get("/referrals", authenticateUser, async (req, res, next) => {
+  try {
+    const { userId } = req.user;
+
+    // Get all users referred by this user
+    const referredUsers = await userRespository.getUsersByReferredBy(userId);
+
+    // Calculate total referrals
+    const totalReferrals = referredUsers.length;
+
+    // Prepare response data
+    const referralData = {
+      totalReferrals: totalReferrals,
+      referrals: referredUsers.map((user) => ({
+        id: user._id,
+        firstName: user.firstName,
+        number: user.number,
+        joinedAt: user.createdAt,
+        amount: 100,
+      })),
+    };
+
+    return setApiResponse(200, true, referralData, null, res);
+  } catch (error) {
+    console.error("Get referrals error:", error.message);
     return next(error);
   }
 });

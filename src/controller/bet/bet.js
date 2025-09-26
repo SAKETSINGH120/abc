@@ -331,8 +331,10 @@ router.get("/stats", authenticateUser, async (req, res) => {
 
 // Get user's winning bets
 router.get("/winnings", authenticateUser, async (req, res) => {
+  console.log("req.user.userId", req.user.userId);
+
   try {
-    const winnings = await BetRepository.getUserWinningBets(req.user.id);
+    const winnings = await BetRepository.getUserWinningBets(req.user.userId);
     return setApiResponse(200, true, winnings, null, res);
   } catch (error) {
     return setApiResponse(500, false, null, error.message, res);

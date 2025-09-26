@@ -92,7 +92,7 @@ connectToDb().then(() => {
 const { DateTime } = require("luxon"); // Install: npm i luxon
 
 // Cron runs every minute
-cron.schedule("*/5 * * * * *", async () => {
+cron.schedule("*/30 * * * * *", async () => {
   try {
     // Current IST time
     const now = DateTime.now().setZone("Asia/Kolkata");
@@ -100,6 +100,10 @@ cron.schedule("*/5 * * * * *", async () => {
     const games = await Game.find({}); // get all games
 
     for (const game of games) {
+      console.log("hfgjhsf", game.status);
+      if (game.status === "declared") {
+        console.log("bdgjdfsd");
+      }
       // Today's date in YYYY-MM-DD
       const today = now.toFormat("yyyy-LL-dd");
 

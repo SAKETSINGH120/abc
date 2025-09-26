@@ -10,9 +10,16 @@ router.get("/", async (req, res) => {
   try {
     // Get all games
     const games = await GameRepository.getAllGames();
-    // Get all results
+    
+    // Get today's date range
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
-    const results = await GameResult.find({});
+    // Get only today's declared results
+    const results = await GameResult.find({
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    });
 
     // Map results by game id
     const resultMap = {};
@@ -20,7 +27,7 @@ router.get("/", async (req, res) => {
       resultMap[r.game.toString()] = r.result;
     });
 
-    // Attach result to each game
+    // Attach result to each game (null if no result declared today)
     const gamesWithResult = games.map((game) => ({
       ...game.toObject(),
       result: resultMap[game._id.toString()] || null,

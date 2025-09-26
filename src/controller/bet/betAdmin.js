@@ -303,4 +303,56 @@ router.get("/game/:gameId/pending", async (req, res) => {
 //   }
 // });
 
+// for testing
+router.get("/summary/:gameId", async (req, res) => {
+  try {
+    const { gameId } = req.params;
+
+    // Get all bets for that game
+    const bets = await BetRepository.getBetsByGame(gameId);
+
+    if (!bets.length) {
+      return res.status(404).json({ success: false, message: "No bets found" });
+    }
+
+    // Aggregation
+    const numberWise = {};
+    const typeWise = {};
+
+    bets.forEach((bet) => {
+      // Number wise aggregation
+      if (!numberWise[bet.number]) {
+        numberWise[bet.number] = {
+          number: bet.number,
+          betType: bet.betType,
+          subBetType: bet.subBetType,
+          totalAmount: 0,
+        };
+      }
+      numberWise[bet.number].totalAmount += bet.amount;
+
+      // SubBetType wise aggregation
+      // if (!typeWise[bet.subBetType]) {
+      //   typeWise[bet.subBetType] = {
+      //     subBetType: bet.subBetType,
+      //     totalAmount: 0,
+      //   };
+      // }
+      // typeWise[bet.subBetType].totalAmount += bet.amount;
+    });
+
+    res.json({
+      status: true,
+      data: {
+        numberWise: Object.values(numberWise),
+        // typeWise: Object.values(typeWise),
+        totalAmount: bets.reduce((sum, b) => sum + b.amount, 0),
+      },
+    });
+  } catch (error) {
+    console.error("Error in bets summary:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 module.exports = router;

@@ -1,5 +1,6 @@
 const Game = require("./game");
 const GameResult = require("../../model/gameResult/gameResult");
+const { ITEMS_PER_PAGE } = require("../../constants");
 
 // Create a new game
 const createGame = async (gameData) => {
@@ -12,9 +13,13 @@ const createGame = async (gameData) => {
 };
 
 // Get all games
-const getAllGames = async (filter = {}) => {
+const getAllGames = async (page = 1) => {
   try {
-    return await Game.find(filter).sort({ openTime: 1 });
+    return await Game.find()
+      .sort({ openTime: 1 })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE);
   } catch (error) {
     throw new Error(`Error fetching games: ${error.message}`);
   }
@@ -132,6 +137,28 @@ const updateGameTiming = async (gameId, openTime, closeTime) => {
     );
   } catch (error) {
     throw new Error(`Error updating game timing: ${error.message}`);
+  }
+};
+
+// Update game by ID (General update function)
+const updateGameById = async (gameId, updateData) => {
+  try {
+    const updatedGame = await Game.findByIdAndUpdate(
+      gameId,
+      { $set: updateData },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedGame) {
+      throw new Error("Game not found");
+    }
+
+    return updatedGame;
+  } catch (error) {
+    throw new Error(`Error updating game: ${error.message}`);
   }
 };
 
@@ -291,6 +318,7 @@ module.exports = {
   getGamesByDateRange,
   getTodaysGames,
   updateGameTiming,
+  updateGameById,
   deleteGame,
   getGamesWithResults,
   closeExpiredGames,

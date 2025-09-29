@@ -9,7 +9,7 @@ const userRepository = require("../../model/user/index");
 
 // Get all payments
 router.get("/", async (req, res) => {
-  const { status, type } = req.query;
+  const { status, type, page } = req.query;
 
   console.log("status", status);
 
@@ -23,7 +23,10 @@ router.get("/", async (req, res) => {
   }
 
   try {
-    const payments = await PaymentRepository.getAllPayments(query);
+    const payments = await PaymentRepository.getAllPayments({
+      query,
+      page: parseInt(page),
+    });
     return setApiResponse(200, true, payments, null, res);
   } catch (error) {
     return setApiResponse(500, false, null, error.message, res);
@@ -65,70 +68,6 @@ router.post("/process/:id", async (req, res) => {
       source: "DEPOSIT",
       referenceId: payment._id.toString(),
     });
-
-    // Add referral commission to both users (referrer and new user)
-    try {
-      const user = await userRepository.getUserById(payment.userId);
-      console.log("user", user.referredBy, user);
-      if (user && user.referredBy) {
-        const referrerId = user.referredBy;
-        const commissionAmount = 100; // 100rs for referrer
-        const newUserBonusAmount = 100; // 100rs bonus for new user
-
-        console.log("Processing referral rewards for both users");
-
-        // Add commission to referrer's wallet
-        await userWalletRepository.addReferralCommission(referrerId, {
-          totalBalance: commissionAmount,
-        });
-
-        // Add bonus to new user's wallet
-        await userWalletRepository.addReferralCommission(payment.userId, {
-          totalBalance: newUserBonusAmount,
-        });
-
-        // Create wallet history for referrer commission
-        const referrerWallet = await userWalletRepository.getUserWallet(
-          referrerId
-        );
-        if (referrerWallet) {
-          await walletHistoryRepository.createWalletHistory({
-            userId: referrerId,
-            walletId: referrerWallet._id,
-            transactionType: "CREDIT",
-            amount: commissionAmount,
-            status: "COMPLETED",
-            source: "REFERRAL",
-            referenceId: `REFERRAL_${payment._id.toString()}`,
-            description: "Referral commission - friend joined",
-          });
-        }
-
-        // Create wallet history for new user bonus
-        const newUserWallet = await userWalletRepository.getUserWallet(
-          payment.userId
-        );
-        if (newUserWallet) {
-          await walletHistoryRepository.createWalletHistory({
-            userId: payment.userId,
-            walletId: newUserWallet._id,
-            transactionType: "CREDIT",
-            amount: newUserBonusAmount,
-            status: "COMPLETED",
-            source: "REFERRAL_BONUS",
-            referenceId: `REFERRAL_BONUS_${payment._id.toString()}`,
-            description: "Welcome bonus - joined via referral",
-          });
-        }
-
-        console.log(
-          `✅ Referral rewards processed: ${commissionAmount}rs to referrer, ${newUserBonusAmount}rs to new user`
-        );
-      }
-    } catch (referralError) {
-      console.log("Referral commission error:", referralError.message);
-      // Continue processing even if referral commission fails
-    }
 
     return setApiResponse(200, true, payment, null, res);
   } catch (error) {

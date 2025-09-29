@@ -53,4 +53,76 @@ router.get("/:userId", async (req, res, next) => {
   }
 });
 
+// Update user by ID (Admin)
+router.put("/:userId", async (req, res, next) => {
+  const { userId } = req.params;
+  const updateData = req.body;
+
+  try {
+    // Remove sensitive fields that shouldn't be updated directly
+    delete updateData.password;
+    delete updateData._id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+
+    if (Object.keys(updateData).length === 0) {
+      return setApiResponse(400, false, null, "No valid fields to update", res);
+    }
+
+    const updatedUser = await userRespository.updateUserById(
+      userId,
+      updateData
+    );
+
+    // Format response to exclude sensitive information
+    const formattedUser = {
+      id: updatedUser._id,
+      firstName: updatedUser.firstName,
+      number: updatedUser.number || "",
+      isVerified: updatedUser.isVerified,
+      referralCode: updatedUser.referralCode,
+      createdAt: updatedUser.createdAt,
+      updatedAt: updatedUser.updatedAt,
+    };
+
+    return setApiResponse(
+      200,
+      true,
+      formattedUser,
+      "User updated successfully",
+      res
+    );
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Delete user by ID (Admin)
+router.delete("/:userId", async (req, res, next) => {
+  const { userId } = req.params;
+
+  try {
+    const deletedUser = await userRespository.deleteUserById(userId);
+
+    // Format response to exclude sensitive information
+    const formattedUser = {
+      id: deletedUser._id,
+      firstName: deletedUser.firstName,
+      number: deletedUser.number || "",
+      isVerified: deletedUser.isVerified,
+      profile: deletedUser.profile,
+    };
+
+    return setApiResponse(
+      200,
+      true,
+      formattedUser,
+      "User deleted successfully",
+      res
+    );
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;

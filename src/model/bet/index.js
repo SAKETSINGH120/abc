@@ -1,5 +1,6 @@
 const { default: mongoose } = require("mongoose");
 const Bet = require("./bet");
+const { ITEMS_PER_PAGE } = require("../../constants");
 
 // Create a new bet
 const placeBet = async (betData) => {
@@ -12,12 +13,14 @@ const placeBet = async (betData) => {
 };
 
 // Get all bets
-const getAllBets = async (filter = {}) => {
+const getAllBets = async (filter = {}, page) => {
   try {
     return await Bet.find(filter)
       .populate("userId", "firstName number")
       .populate("gameId", "name openTime closeTime status")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE);
   } catch (error) {
     throw new Error(`Error fetching bets: ${error.message}`);
   }
@@ -250,7 +253,7 @@ const getGameBetStats = async (gameId) => {
 };
 
 // Get bets by date range
-const getBetsByDateRange = async (startDate, endDate, filter = {}) => {
+const getBetsByDateRange = async (startDate, endDate, filter = {}, page) => {
   try {
     return await Bet.find({
       createdAt: {
@@ -261,7 +264,9 @@ const getBetsByDateRange = async (startDate, endDate, filter = {}) => {
     })
       .populate("userId", "username email")
       .populate("gameId", "name openTime closeTime status")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE);
   } catch (error) {
     throw new Error(`Error fetching bets by date range: ${error.message}`);
   }

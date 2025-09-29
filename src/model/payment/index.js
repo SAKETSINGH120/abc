@@ -1,3 +1,4 @@
+const { ITEMS_PER_PAGE } = require("../../constants");
 const Payment = require("./payment");
 
 module.exports = {
@@ -8,10 +9,14 @@ module.exports = {
       throw new Error("Error creating payment: " + err.message);
     }
   },
-  async getAllPayments(query) {
+  async getAllPayments({ query, page }) {
     try {
       console.log("query", query);
-      return await Payment.find(query).populate("userId", "firstName");
+      return await Payment.find(query)
+        .populate("userId", "firstName")
+        .sort({ createdAt: -1 }) // Sort by newest first
+        .skip((page - 1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE);
     } catch (err) {
       throw new Error("Error fetching payments: " + err.message);
     }

@@ -32,6 +32,7 @@ const getUserProfile = async (userId) => {
       firstName: 1,
       email: 1,
       number: 1,
+      referralCode: 1,
     }
   );
 
@@ -105,8 +106,8 @@ const getAllUsers = async (search, page = 1) => {
       .find(filter)
       .select("-password -passcode -otp -otpExpiresAt") // Exclude sensitive fields
       .sort({ createdAt: -1 }) // Sort by newest first
-      .skip((page - 1) * 25)
-      .limit(25);
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE);
     return users;
   } catch (error) {
     throw error;
@@ -139,6 +140,42 @@ const getUsersByReferredBy = async (userId) => {
   }
 };
 
+// Update user by ID (Admin function)
+const updateUserById = async (userId, updateData) => {
+  try {
+    const result = await dbClient.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      {
+        new: true,
+        runValidators: true,
+        select: "-password", // Exclude password from response
+      }
+    );
+
+    if (!result) {
+      throw new Error("User not found");
+    }
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to update user: ${error.message}`);
+  }
+};
+
+// Delete user by ID (Admin function)
+const deleteUserById = async (userId) => {
+  try {
+    const result = await dbClient.findByIdAndDelete(userId);
+
+    if (!result) {
+      throw new Error("User not found");
+    }
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to delete user: ${error.message}`);
+  }
+};
+
 module.exports = {
   createUser,
   verifyPassword,
@@ -152,4 +189,6 @@ module.exports = {
   getTotalUserCount,
   getUserByUserId,
   getUsersByReferredBy,
+  updateUserById,
+  deleteUserById,
 };

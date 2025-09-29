@@ -187,13 +187,21 @@ const getTransactionsBySource = async (userId, source, options = {}) => {
   };
 };
 
-module.exports = {
-  createWalletHistory,
-  getWalletHistory,
-  getTransactionById,
-  getUserWalletSummary,
-  updateTransactionStatus,
-  getTransactionsBySource,
+const getReferralTransactions = async (userId) => {
+  try {
+    // Get all referral transactions for the user
+    const referralTransactions = await WalletHistory.find({
+      userId: userId,
+      source: "REFERRAL",
+      status: "COMPLETED",
+    })
+      .populate("userId", "firstName number createdAt")
+      .sort({ createdAt: -1 });
+
+    return referralTransactions;
+  } catch (error) {
+    throw new Error(`Error fetching referral transactions: ${error.message}`);
+  }
 };
 
 module.exports = {
@@ -203,4 +211,5 @@ module.exports = {
   getUserWalletSummary,
   updateTransactionStatus,
   getTransactionsBySource,
+  getReferralTransactions,
 };

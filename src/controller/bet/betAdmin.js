@@ -11,7 +11,15 @@ const GameResult = require("../../model/gameResult/gameResult");
 // Get all bets with optional filters
 router.get("/", async (req, res) => {
   try {
-    const { userId, gameId, status, betType, startDate, endDate } = req.query;
+    const {
+      userId,
+      gameId,
+      status,
+      betType,
+      startDate,
+      endDate,
+      page = 1,
+    } = req.query;
     let bets;
     if (startDate && endDate) {
       const filter = {};
@@ -20,7 +28,12 @@ router.get("/", async (req, res) => {
       if (status) filter.status = status;
       if (betType) filter.betType = betType;
 
-      bets = await BetRepository.getBetsByDateRange(startDate, endDate, filter);
+      bets = await BetRepository.getBetsByDateRange(
+        startDate,
+        endDate,
+        filter,
+        parseInt(page)
+      );
     } else {
       const filter = {};
       if (userId) filter.userId = userId;
@@ -28,7 +41,7 @@ router.get("/", async (req, res) => {
       if (status) filter.status = status;
       if (betType) filter.betType = betType;
 
-      bets = await BetRepository.getAllBets(filter);
+      bets = await BetRepository.getAllBets(filter, parseInt(page));
     }
 
     return setApiResponse(200, true, bets, null, res);

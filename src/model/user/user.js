@@ -16,7 +16,7 @@ const userModelSchema = new mongoose.Schema(
       type: String,
     },
     isVerified: { type: Boolean, default: true },
-    referralCode: { type: String, required: true, unique: true },
+    referralCode: { type: String, unique: true },
     referredBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

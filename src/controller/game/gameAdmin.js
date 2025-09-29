@@ -8,9 +8,11 @@ const { setApiResponse } = require("../../utils/setApiResponse");
 // Get all games with their result
 router.get("/", async (req, res) => {
   try {
+    const { page } = req.query;
+    console.log("page", page);
     // Get all games
-    const games = await GameRepository.getAllGames();
-    
+    const games = await GameRepository.getAllGames(parseInt(page));
+
     // Get today's date range
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
@@ -18,7 +20,7 @@ router.get("/", async (req, res) => {
 
     // Get only today's declared results
     const results = await GameResult.find({
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
     });
 
     // Map results by game id
@@ -306,6 +308,66 @@ router.post("/:id/result", async (req, res) => {
     const game = await GameRepository.declareResult(gameId, Number(result));
 
     return setApiResponse(200, true, { game, gameResult }, null, res);
+  } catch (error) {
+    return setApiResponse(500, false, null, error.message, res);
+  }
+});
+
+// Update game by ID
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Remove fields that shouldn't be updated directly
+    delete updateData._id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+
+    // Validate that there are fields to update
+    if (Object.keys(updateData).length === 0) {
+      return setApiResponse(400, false, null, "No valid fields to update", res);
+    }
+
+    // Validate status if provided
+    if (updateData.status) {
+      const validStatuses = ["open", "closed", "declared"];
+      if (!validStatuses.includes(updateData.status)) {
+        return setApiResponse(
+          400,
+          false,
+          null,
+          "Invalid status. Must be one of: open, closed, declared",
+          res
+        );
+      }
+    }
+
+    // Validate timing fields if provided
+    if (updateData.openTime && updateData.closeTime) {
+      const openTime = new Date(updateData.openTime);
+      const closeTime = new Date(updateData.closeTime);
+
+      if (openTime >= closeTime) {
+        return setApiResponse(
+          400,
+          false,
+          null,
+          "Open time must be before close time",
+          res
+        );
+      }
+    }
+
+    const updatedGame = await GameRepository.updateGameById(id, updateData);
+
+    return setApiResponse(
+      200,
+      true,
+      updatedGame,
+      "Game updated successfully",
+      res
+    );
   } catch (error) {
     return setApiResponse(500, false, null, error.message, res);
   }

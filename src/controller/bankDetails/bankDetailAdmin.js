@@ -7,7 +7,7 @@ const { setApiResponse } = require("../../utils/setApiResponse");
 // Get all bank details with user information and search functionality
 router.get("/", async (req, res) => {
   try {
-    const { page = 1, limit = 2, search = "", status = "all" } = req.query;
+    const { page = 1, limit = 10, search = "", status = "all" } = req.query;
 
     const options = {
       page: parseInt(page),

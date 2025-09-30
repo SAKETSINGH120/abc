@@ -10,12 +10,23 @@ const walletHistoryRepository = require("../../model/walletHistory/index");
 // Get all payments for the logged-in user
 router.get("/", authenticateUser, async (req, res) => {
   try {
+    let query = {};
     // Assuming req.user.id is set by authentication middleware
     const userId = req.user?.userId;
+    const { status, page } = req.query;
+
+    if (status) {
+      query.status = status;
+    }
+
     if (!userId) {
       return setApiResponse(401, false, null, "User not authenticated", res);
     }
-    const payments = await PaymentRepository.getAllPayments({ userId });
+    const payments = await PaymentRepository.getAllPayments({
+      query,
+      page: parseInt(page),
+      userId,
+    });
     return setApiResponse(200, true, payments, null, res);
   } catch (error) {
     return setApiResponse(500, false, null, error.message, res);
@@ -25,7 +36,7 @@ router.get("/", authenticateUser, async (req, res) => {
 // Get withdrawal requests for the logged-in user
 router.get("/withdrawals", authenticateUser, async (req, res) => {
   try {
-    const userId = req.user?.userId || "68c7acf022bc3810a0df0e68";
+    const userId = req.user?.userId;
     if (!userId) {
       return setApiResponse(401, false, null, "User not authenticated", res);
     }
@@ -42,7 +53,7 @@ router.get("/withdrawals", authenticateUser, async (req, res) => {
 // Get deposit requests for the logged-in user
 router.get("/deposits", async (req, res) => {
   try {
-    const userId = req.user?.userId || "68c7acf022bc3810a0df0e68";
+    const userId = req.user?.userId;
     if (!userId) {
       return setApiResponse(401, false, null, "User not authenticated", res);
     }
@@ -98,7 +109,7 @@ router.post("/withdraw", authenticateUser, async (req, res) => {
   try {
     const { amount, paymentMethod, paymentRecieveNumber } = req.body;
     // Get userId from authentication middleware if available
-    const userId = req.user?.userId || "68c7acf022bc3810a0df0e68";
+    const userId = req.user?.userId;
     if (!userId || !amount) {
       return setApiResponse(
         400,

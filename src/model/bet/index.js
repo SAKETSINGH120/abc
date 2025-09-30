@@ -118,13 +118,13 @@ const processGameResults = async (gameId, gameResult) => {
             case "JODI":
               // JODI: Exact match with full result
               isWin = parseInt(gameResultString) === bet.number;
-              winAmount = isWin ? bet.amount * 98 : 0; // 1:90 ratio for jodi
+              winAmount = isWin ? bet.amount * 98 : 0; // 1:98 ratio for jodi (10 ka 980)
               break;
             case "DHAI":
               // DHAI: Match with first digit of result
               const firstDigit = parseInt(gameResultString.charAt(0));
               isWin = firstDigit === bet.number;
-              winAmount = isWin ? bet.amount * 98 : 0; // 1:120 ratio for dhai
+              winAmount = isWin ? bet.amount * 9.8 : 0; // 1:120 ratio for dhai
               break;
             case "OPEN":
               // OPEN: Match with last digit of result
@@ -132,7 +132,7 @@ const processGameResults = async (gameId, gameResult) => {
                 gameResultString.charAt(gameResultString.length - 1)
               );
               isWin = lastDigit === bet.number;
-              winAmount = isWin ? bet.amount * 98 : 0; // 1:9 ratio for open
+              winAmount = isWin ? bet.amount * 9.8 : 0; // 1:9.8 ratio for open (10 ka 98)
               break;
           }
           break;

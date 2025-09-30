@@ -289,7 +289,7 @@ const deleteBet = async (betId) => {
 const getUserWinningBets = async (userId) => {
   try {
     return await Bet.find({
-      userId,
+      userId: userId,
       status: "won",
     })
       .populate("gameId", "name openTime closeTime")

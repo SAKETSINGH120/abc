@@ -8,7 +8,7 @@ const { authenticateUser } = require("../../middleware/userAuthMiddleware");
 // Get all active games for users
 router.get("/", async (req, res) => {
   try {
-    const games = await GameRepository.getAllGames();
+    const games = await GameRepository.getAllGamesWithoutPagination();
     return setApiResponse(200, true, games, null, res);
   } catch (error) {
     return setApiResponse(500, false, null, error.message, res);

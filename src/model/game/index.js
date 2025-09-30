@@ -26,6 +26,15 @@ const getAllGames = async (page = 1) => {
 };
 
 // Get all games
+const getAllGamesWithoutPagination = async () => {
+  try {
+    return await Game.find().sort({ openTime: 1 });
+  } catch (error) {
+    throw new Error(`Error fetching games: ${error.message}`);
+  }
+};
+
+// Get all games
 const getAllGamesWithName = async (filter = {}) => {
   try {
     return await Game.find();
@@ -326,4 +335,5 @@ module.exports = {
   getAllGameResults,
   getAllGamesWithName,
   getGameData,
+  getAllGamesWithoutPagination,
 };

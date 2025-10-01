@@ -57,7 +57,7 @@ const getWalletHistory = async (filters = {}, options = {}) => {
   const [history, total] = await Promise.all([
     WalletHistory.find(query)
       .populate("userId", "name email")
-      .populate("walletId", "totalBalance")
+      .populate("walletId", "balance") //totalBalance
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit)),

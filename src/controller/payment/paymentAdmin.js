@@ -11,7 +11,7 @@ const userRepository = require("../../model/user/index");
 router.get("/", async (req, res) => {
   const { status, type, page } = req.query;
 
-  console.log("status", status);
+  console.log("statusfdgfd", status, type);
 
   let query = {};
 
@@ -26,6 +26,7 @@ router.get("/", async (req, res) => {
     const payments = await PaymentRepository.getAllPayments({
       query,
       page: parseInt(page),
+      userId: null,
     });
     return setApiResponse(200, true, payments, null, res);
   } catch (error) {

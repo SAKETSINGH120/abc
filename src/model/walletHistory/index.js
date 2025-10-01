@@ -1,3 +1,4 @@
+const { ITEMS_PER_PAGE } = require("../../constants");
 const WalletHistory = require("./walletHistory");
 
 const createWalletHistory = async (data) => {
@@ -56,7 +57,7 @@ const getWalletHistory = async (filters = {}, options = {}) => {
   const [history, total] = await Promise.all([
     WalletHistory.find(query)
       .populate("userId", "name email")
-      .populate("walletId", "balance")
+      .populate("walletId", "totalBalance")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit)),
@@ -187,20 +188,122 @@ const getTransactionsBySource = async (userId, source, options = {}) => {
   };
 };
 
-const getReferralTransactions = async (userId) => {
+// const getReferralTransactions = async (userId, page, search) => {
+//   try {
+//     // Get all referral transactions for the user
+//     const referralTransactions = await WalletHistory.find({
+//       userId: userId,
+//       source: "REFERRAL",
+//       status: "COMPLETED",
+//     })
+//       .populate("userId", "firstName number createdAt")
+//       .sort({ createdAt: -1 })
+//       .skip((page - 1) * ITEMS_PER_PAGE)
+//       .limit(ITEMS_PER_PAGE);
+
+//     return referralTransactions;
+//   } catch (error) {
+//     throw new Error(`Error fetching referral transactions: ${error.message}`);
+//   }
+// };
+
+const getReferralTransactions = async (userId, page, search) => {
   try {
-    // Get all referral transactions for the user
-    const referralTransactions = await WalletHistory.find({
+    // Create the base filter object
+    let filter = {
       userId: userId,
       source: "REFERRAL",
       status: "COMPLETED",
-    })
+    };
+
+    // Add search condition if search term is provided
+    if (search) {
+      filter.$or = [
+        { "userId.firstName": { $regex: search, $options: "i" } },
+        { "userId.number": { $regex: search, $options: "i" } },
+        { transactionId: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Get all referral transactions for the user
+    const referralTransactions = await WalletHistory.find(filter)
       .populate("userId", "firstName number createdAt")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE);
 
     return referralTransactions;
   } catch (error) {
     throw new Error(`Error fetching referral transactions: ${error.message}`);
+  }
+};
+
+const getAllReferralTransactions = async ({ page, search }) => {
+  try {
+    // Create the base filter object for the referral transactions
+    let filter = {
+      source: "REFERRAL",
+      status: "COMPLETED",
+    };
+    console.log("page in index", page);
+    // Add search condition if search term is provided
+    if (search) {
+      filter.$or = [
+        { "userId.firstName": { $regex: search, $options: "i" } }, // Search in firstName (case-insensitive)
+        { "userId.number": { $regex: search, $options: "i" } }, // Search in number (case-insensitive)
+      ];
+    }
+
+    // Get all referral transactions across all users
+    const referralTransactions = await WalletHistory.find(filter)
+      .populate("userId", "firstName number createdAt")
+      .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+      .skip((page - 1) * ITEMS_PER_PAGE) // Pagination logic
+      .limit(ITEMS_PER_PAGE); // Limit results per page
+
+    return {
+      transactions: referralTransactions,
+    };
+  } catch (error) {
+    throw new Error(
+      `Error fetching all referral transactions: ${error.message}`
+    );
+  }
+};
+
+const getReferralStatistics = async () => {
+  try {
+    // Get total referral amount and count
+    const totalStats = await WalletHistory.aggregate([
+      {
+        $match: {
+          source: "REFERRAL",
+          status: "COMPLETED",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+          totalTransactions: { $sum: 1 },
+          uniqueUsers: { $addToSet: "$userId" },
+        },
+      },
+    ]);
+
+    const stats = totalStats[0] || {
+      totalAmount: 0,
+      totalTransactions: 0,
+      uniqueUsers: [],
+    };
+
+    return {
+      totalReferralAmount: stats.totalAmount,
+      totalReferralTransactions: stats.totalTransactions,
+      totalReferralUsers: stats.uniqueUsers.length,
+    };
+  } catch (error) {
+    throw new Error(`Error fetching referral statistics: ${error.message}`);
   }
 };
 
@@ -212,4 +315,6 @@ module.exports = {
   updateTransactionStatus,
   getTransactionsBySource,
   getReferralTransactions,
+  getAllReferralTransactions,
+  getReferralStatistics,
 };

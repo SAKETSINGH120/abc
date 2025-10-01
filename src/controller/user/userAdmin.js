@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const userRespository = require("../../model/user/index");
+const walletHistoryRepository = require("../../model/walletHistory/index");
 const { setApiResponse } = require("../../utils/setApiResponse");
 
 router.get("/list", async (req, res, next) => {
@@ -121,6 +122,70 @@ router.delete("/:userId", async (req, res, next) => {
       res
     );
   } catch (error) {
+    return next(error);
+  }
+});
+// Get all referrals for authenticated user
+router.get("/allReferrals/all", async (req, res, next) => {
+  try {
+    const { page = 1, search } = req.query;
+    console.log("jkgdsjkgdksjgb", page);
+
+    // Get all referral transactions across all users
+    const result = await walletHistoryRepository.getAllReferralTransactions({
+      page: parseInt(page),
+      search: search,
+    });
+    // Prepare response data
+    const referralData = {
+      referrals: result.transactions.map((transaction) => ({
+        id: transaction._id,
+        firstName: transaction.userId ? transaction.userId.firstName : "N/A",
+        number: transaction.userId ? transaction.userId.number : "N/A",
+        joinedAt: transaction.createdAt,
+        amount: transaction.amount,
+        transactionDate: transaction.createdAt,
+      })),
+    };
+
+    return setApiResponse(200, true, referralData, null, res);
+  } catch (error) {
+    console.error("Get all referrals error:", error.message);
+    return next(error);
+  }
+});
+// Get all referrals for authenticated user
+router.get("/referrals/:userId", async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+    const { page, search } = req.query;
+
+    // Get all referral transactions from wallet history
+    const referralTransactions =
+      await walletHistoryRepository.getReferralTransactions(
+        userId,
+        parseInt(page),
+        search
+      );
+
+    // Calculate total referrals
+    const totalReferrals = referralTransactions.length;
+
+    // Prepare response data
+    const referralData = {
+      totalReferrals: totalReferrals,
+      referrals: referralTransactions.map((transaction) => ({
+        id: transaction._id,
+        firstName: transaction.userId ? transaction.userId.firstName : "N/A",
+        number: transaction.userId ? transaction.userId.number : "N/A",
+        joinedAt: transaction.createdAt,
+        amount: transaction.amount,
+      })),
+    };
+
+    return setApiResponse(200, true, referralData, null, res);
+  } catch (error) {
+    console.error("Get referrals error:", error.message);
     return next(error);
   }
 });

@@ -9,7 +9,7 @@ const walletHistorySchema = new mongoose.Schema(
     },
     walletId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Wallet",
+      ref: "UserWallet",
       required: true,
     },
     transactionType: {

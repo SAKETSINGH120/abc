@@ -52,7 +52,8 @@ router.get("/results/today", async (req, res) => {
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
     // Get all static games (always available)
-    const allGames = await GameRepository.getAllGames();
+    const allGames = await GameRepository.getAllGamesWithoutPagination();
+    console.log("allGames", allGames);
 
     // Get today's game results
     const todaysResults = await GameResult.find({

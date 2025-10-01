@@ -6,6 +6,7 @@ const Bet = require("../model/bet/bet");
 const GameResult = require("../model/gameResult/gameResult");
 const { setApiResponse } = require("../utils/setApiResponse");
 const Payment = require("../model/payment/payment");
+const walletHistoryRepository = require("../model/walletHistory/index");
 
 router.get("/stats", async (req, res) => {
   try {
@@ -22,6 +23,7 @@ router.get("/stats", async (req, res) => {
       totalApprovePayments,
       totalWithdrawRequests,
       totalApproveWithdrawPayments,
+      referralStats,
     ] = await Promise.all([
       // Payment requests (type: ADD)
       Payment.countDocuments({ type: "ADD", status: "pending" }),
@@ -29,6 +31,8 @@ router.get("/stats", async (req, res) => {
       // Withdraw requests (type: WITHDRAWL)
       Payment.countDocuments({ type: "WITHDRAWL", status: "pending" }),
       Payment.countDocuments({ type: "WITHDRAWL", status: "approved" }),
+      // Referral statistics
+      walletHistoryRepository.getReferralStatistics(),
     ]);
 
     return setApiResponse(
@@ -43,6 +47,9 @@ router.get("/stats", async (req, res) => {
         totalWithdrawRequests,
         totalApprovePayments,
         totalApproveWithdrawPayments,
+        totalReferralAmount: referralStats.totalReferralAmount,
+        totalReferralUsers: referralStats.totalReferralUsers,
+        totalReferralTransactions: referralStats.totalReferralTransactions,
       },
       null,
       res

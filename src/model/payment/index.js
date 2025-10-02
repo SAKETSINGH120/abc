@@ -19,6 +19,9 @@ module.exports = {
       if (filter) {
         query.status = filter.status;
       }
+      if (filter.type) {
+        query.type = filter.type;
+      }
       return await Payment.find(query)
         .populate("userId", "firstName")
         .sort({ createdAt: -1 }) // Sort by newest first

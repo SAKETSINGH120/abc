@@ -9,19 +9,20 @@ module.exports = {
       throw new Error("Error creating payment: " + err.message);
     }
   },
-  async getAllPayments({ filter, page, userId }) {
+  async getAllPayments(filter, page, userId) {
     try {
       console.log("filter", filter);
       let query = {};
       if (userId) {
         query.userId = userId;
       }
-      if (filter) {
+      if (filter.status !== undefined) {
         query.status = filter.status;
       }
-      // if (filter.type) {
-      //   query.type = filter.type;
-      // }
+      if (filter.type) {
+        query.type = filter.type;
+      }
+      console.log("query", query);
       return await Payment.find(query)
         .populate("userId", "firstName")
         .sort({ createdAt: -1 }) // Sort by newest first

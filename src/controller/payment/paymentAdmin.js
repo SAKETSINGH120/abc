@@ -21,13 +21,13 @@ router.get("/", async (req, res) => {
   if (type) {
     query.type = type;
   }
-
+  console.log("query", query);
   try {
-    const payments = await PaymentRepository.getAllPayments({
+    const payments = await PaymentRepository.getAllPayments(
       query,
-      page: parseInt(page),
-      userId: null,
-    });
+      parseInt(page),
+      ""
+    );
     return setApiResponse(200, true, payments, null, res);
   } catch (error) {
     return setApiResponse(500, false, null, error.message, res);

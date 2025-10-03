@@ -11,7 +11,6 @@ module.exports = {
   },
   async getAllPayments(filter, page, userId) {
     try {
-      console.log("filter", filter);
       let query = {};
       if (userId) {
         query.userId = userId;
@@ -22,7 +21,6 @@ module.exports = {
       if (filter.type) {
         query.type = filter.type;
       }
-      console.log("query", query);
       return await Payment.find(query)
         .populate("userId", "firstName")
         .sort({ createdAt: -1 }) // Sort by newest first

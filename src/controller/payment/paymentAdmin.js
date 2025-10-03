@@ -124,7 +124,7 @@ router.post("/process/:id", async (req, res) => {
 //   }
 // });
 
-router.post("/process-withdraw/:id", authenticateAdmin, async (req, res) => {
+router.post("/process-withdraw/:id", async (req, res) => {
   try {
     const withdrawId = req.params.id;
     // Find the payment
@@ -147,15 +147,12 @@ router.post("/process-withdraw/:id", authenticateAdmin, async (req, res) => {
         res
       );
     }
-    if (withdrawReq.type !== "WITHDRAWAL") {
+    if (withdrawReq.type !== "WITHDRAWL") {
       return setApiResponse(400, false, null, "Not a withdrawal request", res);
     }
 
-    // Update wallet history status to COMPLETED for this withdrawal
-    await walletHistoryRepository.updateTransactionStatus(
-      withdrawReq._id.toString(),
-      "COMPLETED"
-    );
+    // Update payment status to approved
+    await PaymentRepository.changePaymentStatus(withdrawId, "approved");
 
     return setApiResponse(
       200,

@@ -13,20 +13,24 @@ router.get("/", authenticateUser, async (req, res) => {
     let query = {};
     // Assuming req.user.id is set by authentication middleware
     const userId = req.user?.userId;
-    const { status, page } = req.query;
+    const { status, page, type } = req.query;
 
     if (status) {
       query.status = status;
     }
 
+    if (type) {
+      query.type = type;
+    }
+
     if (!userId) {
       return setApiResponse(401, false, null, "User not authenticated", res);
     }
-    const payments = await PaymentRepository.getAllPayments({
+    const payments = await PaymentRepository.getAllPayments(
       query,
-      page: parseInt(page),
-      userId,
-    });
+      parseInt(page),
+      userId
+    );
     return setApiResponse(200, true, payments, null, res);
   } catch (error) {
     return setApiResponse(500, false, null, error.message, res);

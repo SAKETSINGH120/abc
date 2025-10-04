@@ -15,6 +15,7 @@ const paymentSchema = new mongoose.Schema(
     paymentNumber: {
       type: String,
     },
+    bankDetails: {},
   },
   {
     timestamps: true,

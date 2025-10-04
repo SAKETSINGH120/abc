@@ -7,6 +7,7 @@ const cron = require("node-cron");
 const Game = require("./src/model/game/game");
 const { nowIST, formatIST } = require("./src/utils/timeConverter");
 const GameResult = require("./src/model/gameResult/gameResult");
+const { DateTime } = require("luxon");
 
 const PORT = process.env.PORT || 8002;
 
@@ -89,8 +90,6 @@ connectToDb().then(() => {
 //     console.error("❌ Error updating game statuses:", err);
 //   }
 // });
-
-const { DateTime } = require("luxon"); // Install: npm i luxon
 
 // Cron runs every minute
 // cron.schedule("*/30 * * * * *", async () => {
@@ -186,6 +185,54 @@ const { DateTime } = require("luxon"); // Install: npm i luxon
 //   }
 // });
 
+// cron.schedule("* * * * *", async () => {
+//   try {
+//     const now = DateTime.now().setZone("Asia/Kolkata");
+//     console.log("Cron running at:", now.toISO());
+
+//     const games = await Game.find({});
+//     if (!games.length) {
+//       console.log("No games found");
+//       return;
+//     }
+
+//     for (const game of games) {
+//       // Skip updating if status is already declared
+//       if (game.status === "declared") {
+//         console.log("Game already declared, skipping:", game.name);
+//         continue;
+//       }
+
+//       const today = now.toFormat("yyyy-LL-dd");
+//       const gameOpen = DateTime.fromISO(`${today}T${game.openTime}`, {
+//         zone: "Asia/Kolkata",
+//       });
+//       const gameClose = DateTime.fromISO(`${today}T${game.closeTime}`, {
+//         zone: "Asia/Kolkata",
+//       });
+
+//       let newStatus = game.status;
+
+//       if (now < gameOpen) {
+//         newStatus = "upcoming";
+//       } else if (now >= gameOpen && now <= gameClose) {
+//         newStatus = "open";
+//       } else if (now > gameClose) {
+//         newStatus = "closed";
+//       }
+
+//       if (newStatus !== game.status) {
+//         await Game.findByIdAndUpdate(game._id, { status: newStatus });
+//         console.log(`Game "${game.name}" status updated to "${newStatus}"`);
+//       }
+//     }
+
+//     console.log("✅ Game statuses checked at:", now.toISO());
+//   } catch (err) {
+//     console.error("❌ Error updating game statuses:", err);
+//   }
+// });
+
 cron.schedule("* * * * *", async () => {
   try {
     const now = DateTime.now().setZone("Asia/Kolkata");
@@ -197,14 +244,31 @@ cron.schedule("* * * * *", async () => {
       return;
     }
 
+    const today = now.toFormat("yyyy-LL-dd");
+
+    // Fetch all GameResults declared today in IST
+    const resultsToday = await GameResult.find({
+      createdAt: {
+        $gte: DateTime.fromISO(`${today}T00:00:00`, {
+          zone: "Asia/Kolkata",
+        }).toJSDate(),
+        $lte: DateTime.fromISO(`${today}T23:59:59`, {
+          zone: "Asia/Kolkata",
+        }).toJSDate(),
+      },
+    });
+
+    // Map of gameIds declared today for quick lookup
+    const declaredGameIdsToday = resultsToday.map((r) => r.game.toString());
+
     for (const game of games) {
-      // Skip updating if status is already declared
-      if (game.status === "declared") {
-        console.log("Game already declared, skipping:", game.name);
+      // Skip only if this game is declared today
+      if (declaredGameIdsToday.includes(game._id.toString())) {
+        console.log(`Game "${game.name}" already declared today, skipping.`);
         continue;
       }
 
-      const today = now.toFormat("yyyy-LL-dd");
+      // Parse today's open and close times in IST
       const gameOpen = DateTime.fromISO(`${today}T${game.openTime}`, {
         zone: "Asia/Kolkata",
       });

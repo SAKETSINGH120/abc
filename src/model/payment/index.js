@@ -22,7 +22,7 @@ module.exports = {
         query.type = filter.type;
       }
       return await Payment.find(query)
-        .populate("userId", "firstName")
+        .populate("userId", "firstName number")
         .sort({ createdAt: -1 }) // Sort by newest first
         .skip((page - 1) * ITEMS_PER_PAGE)
         .limit(ITEMS_PER_PAGE);

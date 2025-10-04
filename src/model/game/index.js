@@ -26,9 +26,29 @@ const getAllGames = async (page = 1) => {
 };
 
 // Get all games
+// const getAllGamesWithoutPagination = async () => {
+//   try {
+//     return await Game.find().sort({ status: -1, openTime: 1 });
+//   } catch (error) {
+//     throw new Error(`Error fetching games: ${error.message}`);
+//   }
+// };
+
 const getAllGamesWithoutPagination = async () => {
   try {
-    return await Game.find().sort({ openTime: 1 });
+    const games = await Game.aggregate([
+      {
+        $addFields: {
+          sortOrder: {
+            $cond: [{ $eq: ["$status", "open"] }, 0, 1],
+          },
+        },
+      },
+      { $sort: { sortOrder: 1, openTime: 1 } },
+      { $project: { sortOrder: 0 } },
+    ]);
+
+    return games;
   } catch (error) {
     throw new Error(`Error fetching games: ${error.message}`);
   }
@@ -67,8 +87,9 @@ const getActiveGames = async () => {
 
 // Update game status
 const updateGameStatus = async (gameId, status) => {
+  console.log("status", status);
   try {
-    const validStatuses = ["open", "closed", "declared"];
+    const validStatuses = ["open", "closed", "declared", "upcoming"];
     if (!validStatuses.includes(status)) {
       throw new Error("Invalid status");
     }
@@ -270,6 +291,57 @@ const getAllGameResults = async (options = {}) => {
   }
 };
 
+// const getGameData = async ({ name, startDate, endDate }) => {
+//   try {
+//     // Initialize filter object for the GameResult collection
+//     let filter = {};
+
+//     // Step 1: Search for games by name (case-insensitive)
+//     if (name) {
+//       const games = await Game.find({
+//         name: { $regex: name, $options: "i" }, // Case-insensitive regex search for name
+//       }).select("_id"); // Only select the _id field
+
+//       // If no games found with that name, return an empty array
+//       if (games.length === 0) {
+//         return [];
+//       }
+
+//       // Step 2: Extract the game IDs
+//       const gameIds = games.map((game) => game._id);
+
+//       // Add the game filter to the GameResult filter
+//       filter.game = { $in: gameIds }; // Match GameResult where game._id is in the list of matching game IDs
+//     }
+
+//     console.log("hel", startDate, endDate);
+
+//     // Step 3: Filter by date range (if provided)
+//     if (startDate && endDate) {
+//       filter.createdAt = {
+//         $gte: new Date(startDate), // Greater than or equal to startDate
+//         $lte: new Date(endDate), // Less than or equal to endDate
+//       };
+//     }
+
+//     // Step 4: Query GameResults with the constructed filter
+//     const gameResults = await GameResult.find(filter)
+//       .populate({
+//         path: "game", // Populate the "game" field in the GameResult schema
+//         model: "Game", // Reference to the Game model
+//         select: "name", // Fields to select from the Game model
+//       })
+//       .exec();
+
+//     console.log("gameResult", gameResults);
+
+//     return gameResults;
+//   } catch (error) {
+//     console.error("Error fetching game data:", error);
+//     throw error;
+//   }
+// };
+
 const getGameData = async ({ name, startDate, endDate }) => {
   try {
     // Initialize filter object for the GameResult collection
@@ -278,7 +350,7 @@ const getGameData = async ({ name, startDate, endDate }) => {
     // Step 1: Search for games by name (case-insensitive)
     if (name) {
       const games = await Game.find({
-        name: { $regex: name, $options: "i" }, // Case-insensitive regex search for name
+        name: { $regex: name, $options: "i" }, // Case-insensitive regex search
       }).select("_id"); // Only select the _id field
 
       // If no games found with that name, return an empty array
@@ -293,22 +365,43 @@ const getGameData = async ({ name, startDate, endDate }) => {
       filter.game = { $in: gameIds }; // Match GameResult where game._id is in the list of matching game IDs
     }
 
+    console.log("Received Dates:", startDate, endDate);
+
     // Step 3: Filter by date range (if provided)
     if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      // Include the entire end date (till 23:59:59.999)
+      end.setHours(23, 59, 59, 999);
+
       filter.createdAt = {
-        $gte: new Date(startDate), // Greater than or equal to startDate
-        $lte: new Date(endDate), // Less than or equal to endDate
+        $gte: start, // Greater than or equal to startDate
+        $lte: end, // Less than or equal to endDate
       };
+    } else if (startDate && !endDate) {
+      // If only startDate is provided
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      filter.createdAt = { $gte: start };
+    } else if (!startDate && endDate) {
+      // If only endDate is provided
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt = { $lte: end };
     }
 
     // Step 4: Query GameResults with the constructed filter
     const gameResults = await GameResult.find(filter)
+      .sort()
       .populate({
         path: "game", // Populate the "game" field in the GameResult schema
         model: "Game", // Reference to the Game model
         select: "name", // Fields to select from the Game model
       })
       .exec();
+
+    console.log("Game Results:", gameResults);
 
     return gameResults;
   } catch (error) {

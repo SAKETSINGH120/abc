@@ -6,6 +6,7 @@ const fileUploader = require("../../utils/fileUploader");
 const { authenticateUser } = require("../../middleware/userAuthMiddleware");
 const userWalletRepository = require("../../model/userWallet/walletIndex");
 const walletHistoryRepository = require("../../model/walletHistory/index");
+const bankDetail = require("../../model/bankDetail/bankDetail");
 
 // Get all payments for the logged-in user
 router.get("/", authenticateUser, async (req, res) => {
@@ -111,8 +112,21 @@ router.post(
 // User withdrawal request API
 router.post("/withdraw", authenticateUser, async (req, res) => {
   try {
-    const { amount, paymentMethod, paymentRecieveNumber } = req.body;
+    const {
+      amount,
+      paymentMethod,
+      paymentRecieveNumber,
+      bankDetails = "",
+    } = req.body;
     // Get userId from authentication middleware if available
+    console.log(
+      "hgkfjdghjfdgj",
+      amount,
+      paymentMethod,
+      paymentRecieveNumber,
+      bankDetails,
+      req.body
+    );
     const userId = req.user?.userId;
     if (!userId || !amount) {
       return setApiResponse(
@@ -147,7 +161,8 @@ router.post("/withdraw", authenticateUser, async (req, res) => {
       type: "WITHDRAWL",
       paymentMethod: paymentMethod || "Bank Transfer",
       status: "pending",
-      paymentRecieveNumber: paymentRecieveNumber || "",
+      paymentNumber: paymentRecieveNumber || "",
+      bankDetails: bankDetails || "",
     });
 
     // Deduct the amount and create wallet history in parallel

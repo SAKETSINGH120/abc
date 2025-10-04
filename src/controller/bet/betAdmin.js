@@ -225,6 +225,9 @@ router.post("/game/:gameId/process-results", async (req, res) => {
         );
       }
     }
+    // ✅ **Change game status back to 'upcoming' after processing results**
+    // game.status = "upcoming";
+    // await GameRepository.updateGameStatus(gameId, "upcoming");
 
     return setApiResponse(
       200,

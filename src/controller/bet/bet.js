@@ -402,11 +402,20 @@ function validateBetTypeAndNumber(betType, subBetType, number) {
     // }
 
     switch (subBetType) {
+      // case "JODI":
+      //   if (!/^[0-9]{2}$/.test(numberStr) || number < 0 || number > 99) {
+      //     return {
+      //       isValid: false,
+      //       message: "JODI bet must be a two-digit number (00-99)",
+      //     };
+      //   }
+      //   break;
       case "JODI":
-        if (!/^[0-9]{2}$/.test(numberStr) || number < 0 || number > 99) {
+        // ✅ Updated: Allow any number from 1 to 100
+        if (!/^\d{1,3}$/.test(numberStr) || number < 1 || number > 100) {
           return {
             isValid: false,
-            message: "JODI bet must be a two-digit number (00-99)",
+            message: "JODI bet must be a number between 1 and 100",
           };
         }
         break;

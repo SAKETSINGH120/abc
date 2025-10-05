@@ -6,6 +6,7 @@ const UserWalletRepository = require("../../model/userWallet/walletIndex");
 const WalletHistoryRepository = require("../../model/walletHistory/index");
 const { setApiResponse } = require("../../utils/setApiResponse");
 const GameResult = require("../../model/gameResult/gameResult");
+const { DateTime } = require("luxon");
 // const { authenticateAdmin } = require('../../middleware/adminAuthMiddleware')
 
 // Get all bets with optional filters
@@ -148,9 +149,26 @@ router.post("/game/:gameId/process-results", async (req, res) => {
       return setApiResponse(404, false, null, "Game not found", res);
     }
 
-    const gameResult = await GameResult.findOne({ game: gameId });
+    // Get today's date range in IST to ensure we fetch the latest result for today
+    const now = DateTime.now().setZone("Asia/Kolkata");
+    const today = now.toFormat("yyyy-LL-dd");
+    
+    // Create IST date range for today
+    const startOfDay = DateTime.fromISO(`${today}T00:00:00`, {
+      zone: "Asia/Kolkata",
+    }).toJSDate();
+    const endOfDay = DateTime.fromISO(`${today}T23:59:59`, {
+      zone: "Asia/Kolkata",
+    }).toJSDate();
+
+    // Find the latest game result for today for this specific game
+    const gameResult = await GameResult.findOne({
+      game: gameId,
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    }).sort({ createdAt: -1 }); // Get the latest result if multiple exist today
+    
     if (!gameResult) {
-      return setApiResponse(404, false, null, "GameResult not found", res);
+      return setApiResponse(404, false, null, "GameResult not found for today", res);
     }
     console.log("gameResult", gameResult);
     // Check if game has a result declared

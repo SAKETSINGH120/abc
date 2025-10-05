@@ -260,22 +260,46 @@ router.post("/", authenticateUser, async (req, res) => {
     }
 
     // ✅ Place each bet separately
-    const betResults = [];
-    for (const sub of subBets) {
+    // const betResults = [];
+    // for (const sub of subBets) {
+    //   const { subBetType, number, amount } = sub;
+
+    //   // Validate bet
+    //   const betValidation = validateBetTypeAndNumber(
+    //     betType,
+    //     subBetType,
+    //     number
+    //   );
+    //   console.log("betValidation.isValid", betValidation.isValid);
+    //   if (!betValidation.isValid) {
+    //     continue;
+    //   }
+
+    //   const bet = await BetRepository.placeBet({
+    //     userId: req.user.userId,
+    //     gameId,
+    //     betType,
+    //     subBetType,
+    //     number,
+    //     amount,
+    //   });
+    //   console.log("come");
+    //   betResults.push(bet);
+    // }
+
+    // ✅ Place all bets in parallel instead of one-by-one
+    const betPromises = subBets.map(async (sub) => {
       const { subBetType, number, amount } = sub;
 
-      // Validate bet
+      // Validate
       const betValidation = validateBetTypeAndNumber(
         betType,
         subBetType,
         number
       );
-      console.log("betValidation.isValid", betValidation.isValid);
-      if (!betValidation.isValid) {
-        continue;
-      }
+      if (!betValidation.isValid) return null;
 
-      const bet = await BetRepository.placeBet({
+      return await BetRepository.placeBet({
         userId: req.user.userId,
         gameId,
         betType,
@@ -283,9 +307,10 @@ router.post("/", authenticateUser, async (req, res) => {
         number,
         amount,
       });
-      console.log("come");
-      betResults.push(bet);
-    }
+    });
+
+    // Wait for all to finish
+    const betResults = (await Promise.all(betPromises)).filter(Boolean);
 
     console.log("jkdhjkdgkd", betResults);
 

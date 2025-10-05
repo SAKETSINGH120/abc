@@ -99,7 +99,7 @@ const getAllUsers = async (search, page = 1) => {
     if (search) {
       const regex = new RegExp(search, "i");
       filter = {
-        $or: [{ firstName: regex }, { lastName: regex }, { email: regex }],
+        $or: [{ firstName: regex }, { lastName: regex }, { number: regex }],
       };
     }
     const users = await dbClient

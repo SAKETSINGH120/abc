@@ -9,7 +9,7 @@ const userModelSchema = new mongoose.Schema(
       // select: false,
     },
     number: {
-      type: String,
+      type: Number,
       required: true,
     },
     profile: {

@@ -139,7 +139,7 @@ router.post(
         user: {
           id: user._id,
           firstName: user.firstName,
-          number: user.number,
+          number: Number(user.number),
           referralCode: user.referralCode,
         },
         token,
@@ -203,7 +203,7 @@ router.post(
         user: {
           id: user._id,
           firstName: user.firstName,
-          number: user.number,
+          number: Number(user.number),
         },
         token,
       };

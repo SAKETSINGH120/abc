@@ -7,10 +7,10 @@ module.exports.userSignupValidator = [
     .withMessage("Password is required")
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters long"),
-  body("number").isLength({ min: 10, max: 10 }).withMessage("invalid number "),
+  body("number").trim().isString().isLength({ min: 10, max: 10 }).withMessage("invalid number "),
 ];
 
 module.exports.userLoginValidator = [
-  body("number").trim().isNumeric().withMessage("number is required"),
+  body("number").trim().isString().withMessage("number is required"),
   body("password").trim().isString().withMessage("passowrd is required"),
 ];

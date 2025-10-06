@@ -1,5 +1,6 @@
 const { ITEMS_PER_PAGE } = require("../../constants");
 const Payment = require("./payment");
+const User = require("../../model/user/user");
 
 module.exports = {
   async createPayment(data) {
@@ -9,9 +10,23 @@ module.exports = {
       throw new Error("Error creating payment: " + err.message);
     }
   },
-  async getAllPayments(filter, page, userId) {
+  async getAllPayments(filter, page, userId, search) {
     try {
       let query = {};
+
+      console.log("aaya", search);
+
+      // 🔍 1. Search by user number if provided
+      if (search) {
+        const user = await User.findOne({ number: search }).select("_id");
+        console.log("aaya", search, user);
+        if (user) {
+          query.userId = user._id;
+        } else {
+          // No user found → no payments
+          return [];
+        }
+      }
       if (userId) {
         query.userId = userId;
       }

@@ -243,7 +243,7 @@ cron.schedule("* * * * *", async () => {
       console.log("No games found");
       return;
     }
-
+    console.log("df", games);
     const today = now.toFormat("yyyy-LL-dd");
 
     // Fetch all GameResults declared today in IST
@@ -258,23 +258,36 @@ cron.schedule("* * * * *", async () => {
       },
     });
 
-    // Map of gameIds declared today for quick lookup
     const declaredGameIdsToday = resultsToday.map((r) => r.game.toString());
 
     for (const game of games) {
-      // Skip only if this game is declared today
       if (declaredGameIdsToday.includes(game._id.toString())) {
         console.log(`Game "${game.name}" already declared today, skipping.`);
         continue;
       }
 
       // Parse today's open and close times in IST
-      const gameOpen = DateTime.fromISO(`${today}T${game.openTime}`, {
+      let gameOpen = DateTime.fromISO(`${today}T${game.openTime}`, {
         zone: "Asia/Kolkata",
       });
-      const gameClose = DateTime.fromISO(`${today}T${game.closeTime}`, {
+      let gameClose = DateTime.fromISO(`${today}T${game.closeTime}`, {
         zone: "Asia/Kolkata",
       });
+
+      // Handle cross-midnight scenarios (e.g., opens at 17:00, closes at 03:00 next day)
+      if (gameClose <= gameOpen) {
+        // If close time is earlier than or equal to open time, it means close time is next day
+        gameClose = gameClose.plus({ days: 1 });
+      }
+
+      console.log(
+        "now",
+        now.toISO(),
+        "gameOpen",
+        gameOpen.toISO(),
+        "gameClose",
+        gameClose.toISO()
+      );
 
       let newStatus = game.status;
 
@@ -283,6 +296,7 @@ cron.schedule("* * * * *", async () => {
       } else if (now >= gameOpen && now <= gameClose) {
         newStatus = "open";
       } else if (now > gameClose) {
+        console.log("Game should be closed");
         newStatus = "closed";
       }
 

@@ -266,7 +266,7 @@ const getAllBankDetailsWithUser = async (options = {}) => {
             { bankName: { $regex: search.trim(), $options: "i" } },
             { accountNumber: { $regex: search.trim(), $options: "i" } },
             { "user.firstName": { $regex: search.trim(), $options: "i" } },
-            { "user.mobile": { $regex: search.trim(), $options: "i" } },
+            { "user.number": { $regex: search.trim(), $options: "i" } },
           ],
         },
       });

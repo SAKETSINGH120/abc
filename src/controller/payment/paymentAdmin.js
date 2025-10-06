@@ -9,7 +9,7 @@ const userRepository = require("../../model/user/index");
 
 // Get all payments
 router.get("/", async (req, res) => {
-  const { status, type, page } = req.query;
+  const { status, type, page, search } = req.query;
 
   console.log("statusfdgfd", status, type);
 
@@ -21,12 +21,14 @@ router.get("/", async (req, res) => {
   if (type) {
     query.type = type;
   }
+
   console.log("query", query);
   try {
     const payments = await PaymentRepository.getAllPayments(
       query,
       parseInt(page),
-      ""
+      "",
+      search
     );
     return setApiResponse(200, true, payments, null, res);
   } catch (error) {

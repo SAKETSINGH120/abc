@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const userRespository = require("../../model/user/index");
 const walletHistoryRepository = require("../../model/walletHistory/index");
+const UserWalletRepository = require("../../model/userWallet/walletIndex");
 const { setApiResponse } = require("../../utils/setApiResponse");
 
 router.get("/list", async (req, res, next) => {
@@ -13,16 +14,33 @@ router.get("/list", async (req, res, next) => {
       return setApiResponse(404, false, null, "No users found", res);
     }
 
-    // Format user data to exclude sensitive information
-    const formattedUsers = users.map((user) => ({
-      id: user._id,
-      firstName: user.firstName,
-      number: user.number || "",
-      isVerified: user.isVerified,
-      profile: user.profile,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    }));
+    // Format user data and get wallet balances
+    const formattedUsers = await Promise.all(
+      users.map(async (user) => {
+        // Get user wallet balance
+        let walletBalance = 0;
+        try {
+          const wallet = await UserWalletRepository.getUserWallet(user._id);
+          walletBalance = wallet ? wallet.totalBalance || 0 : 0;
+        } catch (error) {
+          console.log(
+            `Error fetching wallet for user ${user._id}:`,
+            error.message
+          );
+        }
+
+        return {
+          id: user._id,
+          firstName: user.firstName,
+          number: user.number || "",
+          isVerified: user.isVerified,
+          profile: user.profile,
+          balance: walletBalance,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
+      })
+    );
 
     return setApiResponse(200, true, formattedUsers, null, res);
   } catch (error) {
@@ -38,6 +56,16 @@ router.get("/:userId", async (req, res, next) => {
     if (!user) {
       return setApiResponse(404, false, null, "User not found", res);
     }
+
+    // Get user wallet balance
+    let walletBalance = 0;
+    try {
+      const wallet = await UserWalletRepository.getUserWallet(userId);
+      walletBalance = wallet ? wallet.totalBalance || 0 : 0;
+    } catch (error) {
+      console.log(`Error fetching wallet for user ${userId}:`, error.message);
+    }
+
     // Format user data to exclude sensitive information
     const formattedUser = {
       id: user._id,
@@ -45,6 +73,7 @@ router.get("/:userId", async (req, res, next) => {
       number: user.number || "",
       isVerified: user.isVerified,
       profile: user.profile,
+      balance: walletBalance,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

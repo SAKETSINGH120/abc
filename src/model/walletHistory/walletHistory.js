@@ -29,7 +29,15 @@ const walletHistorySchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ["GAME_WIN", "GAME_BET", "DEPOSIT", "WITHDRAWAL", "REFERRAL"],
+      enum: [
+        "GAME_WIN",
+        "GAME_BET",
+        "DEPOSIT",
+        "WITHDRAWAL",
+        "REFERRAL",
+        "ADMIN_CREDIT",
+        "ADMIN_DEBIT",
+      ],
       required: true,
     },
     referenceId: {

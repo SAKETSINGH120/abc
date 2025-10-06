@@ -1,5 +1,6 @@
 const { ITEMS_PER_PAGE } = require("../../constants");
 const WalletHistory = require("./walletHistory");
+const User = require("../../model/user/user");
 
 const createWalletHistory = async (data) => {
   const {
@@ -10,6 +11,7 @@ const createWalletHistory = async (data) => {
     status = "COMPLETED",
     source,
     referenceId,
+    reason,
   } = data;
 
   const walletHistory = new WalletHistory({
@@ -20,6 +22,7 @@ const createWalletHistory = async (data) => {
     status,
     source,
     referenceId,
+    reason,
   });
 
   return await walletHistory.save();
@@ -238,28 +241,74 @@ const getReferralTransactions = async (userId, page, search) => {
   }
 };
 
+// const getAllReferralTransactions = async ({ page, search }) => {
+//   try {
+//     // Create the base filter object for the referral transactions
+//     let filter = {
+//       source: "REFERRAL",
+//       status: "COMPLETED",
+//     };
+//     console.log("page in index", page);
+//     // Add search condition if search term is provided
+//     if (search) {
+//       filter.$or = [
+//         { "userId.firstName": { $regex: search, $options: "i" } }, // Search in firstName (case-insensitive)
+//         { "userId.number": { $regex: search, $options: "i" } }, // Search in number (case-insensitive)
+//       ];
+//     }
+
+//     // Get all referral transactions across all users
+//     const referralTransactions = await WalletHistory.find(filter)
+//       .populate("userId", "firstName number createdAt")
+//       .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+//       .skip((page - 1) * ITEMS_PER_PAGE) // Pagination logic
+//       .limit(ITEMS_PER_PAGE); // Limit results per page
+
+//     return {
+//       transactions: referralTransactions,
+//     };
+//   } catch (error) {
+//     throw new Error(
+//       `Error fetching all referral transactions: ${error.message}`
+//     );
+//   }
+// };
+
 const getAllReferralTransactions = async ({ page, search }) => {
   try {
-    // Create the base filter object for the referral transactions
-    let filter = {
+    // Base filter for referral transactions
+    const filter = {
       source: "REFERRAL",
       status: "COMPLETED",
     };
-    console.log("page in index", page);
-    // Add search condition if search term is provided
+
+    let userIds = [];
+
     if (search) {
-      filter.$or = [
-        { "userId.firstName": { $regex: search, $options: "i" } }, // Search in firstName (case-insensitive)
-        { "userId.number": { $regex: search, $options: "i" } }, // Search in number (case-insensitive)
-      ];
+      const numberSearch = search;
+
+      // Find matching users first
+      userIds = await User.find({
+        $or: [
+          { firstName: { $regex: search, $options: "i" } },
+          ...(numberSearch !== null ? [{ number: numberSearch }] : []),
+        ],
+      }).distinct("_id");
+
+      // If no matching users, return empty array
+      if (userIds.length === 0) {
+        return { transactions: [] };
+      }
+
+      filter.userId = { $in: userIds };
     }
 
-    // Get all referral transactions across all users
+    // Query WalletHistory
     const referralTransactions = await WalletHistory.find(filter)
       .populate("userId", "firstName number createdAt")
-      .sort({ createdAt: -1 }) // Sort by createdAt in descending order
-      .skip((page - 1) * ITEMS_PER_PAGE) // Pagination logic
-      .limit(ITEMS_PER_PAGE); // Limit results per page
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE);
 
     return {
       transactions: referralTransactions,

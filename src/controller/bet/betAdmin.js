@@ -19,6 +19,7 @@ router.get("/", async (req, res) => {
       betType,
       startDate,
       endDate,
+      search,
       page = 1,
     } = req.query;
     let bets;
@@ -42,7 +43,7 @@ router.get("/", async (req, res) => {
       if (status) filter.status = status;
       if (betType) filter.betType = betType;
 
-      bets = await BetRepository.getAllBets(filter, parseInt(page));
+      bets = await BetRepository.getAllBets(filter, parseInt(page), search);
     }
 
     return setApiResponse(200, true, bets, null, res);
@@ -152,7 +153,7 @@ router.post("/game/:gameId/process-results", async (req, res) => {
     // Get today's date range in IST to ensure we fetch the latest result for today
     const now = DateTime.now().setZone("Asia/Kolkata");
     const today = now.toFormat("yyyy-LL-dd");
-    
+
     // Create IST date range for today
     const startOfDay = DateTime.fromISO(`${today}T00:00:00`, {
       zone: "Asia/Kolkata",
@@ -164,11 +165,17 @@ router.post("/game/:gameId/process-results", async (req, res) => {
     // Find the latest game result for today for this specific game
     const gameResult = await GameResult.findOne({
       game: gameId,
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
     }).sort({ createdAt: -1 }); // Get the latest result if multiple exist today
-    
+
     if (!gameResult) {
-      return setApiResponse(404, false, null, "GameResult not found for today", res);
+      return setApiResponse(
+        404,
+        false,
+        null,
+        "GameResult not found for today",
+        res
+      );
     }
     console.log("gameResult", gameResult);
     // Check if game has a result declared

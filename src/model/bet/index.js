@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const Bet = require("./bet");
 const { ITEMS_PER_PAGE } = require("../../constants");
+const User = require("../../model/user/user");
 
 // Create a new bet
 const placeBet = async (betData) => {
@@ -13,14 +14,46 @@ const placeBet = async (betData) => {
 };
 
 // Get all bets
-const getAllBets = async (filter = {}, page) => {
+// const getAllBets = async (filter = {}, page) => {
+//   try {
+//     return await Bet.find(filter)
+//       .populate("userId", "firstName number")
+//       .populate("gameId", "name openTime closeTime status")
+//       .sort({ createdAt: -1 })
+//       .skip((page - 1) * ITEMS_PER_PAGE)
+//       .limit(ITEMS_PER_PAGE);
+//   } catch (error) {
+//     throw new Error(`Error fetching bets: ${error.message}`);
+//   }
+// };
+
+const getAllBets = async (filter = {}, page = 1, search) => {
   try {
-    return await Bet.find(filter)
+    let query = { ...filter };
+
+    // 🔍 If searching by user number
+    if (search) {
+      console.log("dhfjfjd");
+      const user = await User.findOne({ number: search }).select("_id");
+      console.log("dhfjfjd", user);
+      if (user) {
+        query.userId = user._id;
+      } else {
+        // No user found with that number → return empty list
+        return [];
+      }
+    }
+    console.log("query", query);
+    // ⚙️ Main query
+    const bets = await Bet.find(query)
       .populate("userId", "firstName number")
       .populate("gameId", "name openTime closeTime status")
       .sort({ createdAt: -1 })
       .skip((page - 1) * ITEMS_PER_PAGE)
-      .limit(ITEMS_PER_PAGE);
+      .limit(ITEMS_PER_PAGE)
+      .exec();
+
+    return bets;
   } catch (error) {
     throw new Error(`Error fetching bets: ${error.message}`);
   }
@@ -184,6 +217,92 @@ const updateBetStatus = async (betId, status, winAmount = 0) => {
 //   }
 // };
 
+// const processGameResults = async (gameId, gameResult) => {
+//   try {
+//     const pendingBets = await getPendingBetsByGame(gameId);
+//     const updatePromises = [];
+//     const winningBets = [];
+
+//     for (const bet of pendingBets) {
+//       let isWin = false;
+//       let winAmount = 0;
+
+//       console.log("Processing bet:", bet);
+
+//       // Convert result to string
+//       const gameResultNumber = gameResult.result || gameResult;
+//       const gameResultString = gameResultNumber.toString();
+
+//       switch (bet.betType) {
+//         case "JANTARY":
+//           const firstDigit = parseInt(gameResultString.charAt(0), 10); // DHAI
+//           const lastDigit = parseInt(
+//             gameResultString.charAt(gameResultString.length - 1),
+//             10
+//           ); // OPEN
+
+//           switch (bet.subBetType) {
+//             case "JODI":
+//               isWin = parseInt(gameResultString, 10) === bet.number;
+//               // winAmount = isWin ? Math.round(bet.amount * 98 * 100) / 100 : 0;
+//               winAmount = isWin ? Math.trunc(bet.amount * 98) : 0;
+//               break;
+
+//             case "DHAI":
+//               isWin = firstDigit === bet.number;
+//               // winAmount = isWin ? Math.round(bet.amount * 9.8 * 100) / 100 : 0;
+//               winAmount = isWin ? Math.trunc(bet.amount * 9.8) : 0;
+//               break;
+
+//             case "OPEN":
+//               isWin = lastDigit === bet.number;
+//               // winAmount = isWin ? Math.round(bet.amount * 9.8 * 100) / 100 : 0;
+//               winAmount = isWin ? Math.trunc(bet.amount * 9.8) : 0;
+//               break;
+
+//             default:
+//               isWin = false;
+//               winAmount = 0;
+//               break;
+//           }
+//           break;
+
+//         // Add other bet types here if needed
+//         // case "CROSSING":
+//         // case "NO-TO-NO":
+//         // case "OPEN":
+//         //   ...
+//       }
+
+//       const status = isWin ? "won" : "lost";
+
+//       // Update bet status
+//       updatePromises.push(updateBetStatus(bet._id, status, winAmount));
+
+//       // Add winning bet info
+//       if (isWin && winAmount > 0) {
+//         winningBets.push({
+//           userId: bet.userId,
+//           betId: bet._id,
+//           winAmount: winAmount,
+//           betType: bet.betType,
+//           subBetType: bet.subBetType,
+//           number: bet.number,
+//         });
+//       }
+//     }
+
+//     const updatedBets = await Promise.all(updatePromises);
+
+//     return {
+//       updatedBets,
+//       winningBets,
+//     };
+//   } catch (error) {
+//     throw new Error(`Error processing game results: ${error.message}`);
+//   }
+// };
+
 const processGameResults = async (gameId, gameResult) => {
   try {
     const pendingBets = await getPendingBetsByGame(gameId);
@@ -196,39 +315,53 @@ const processGameResults = async (gameId, gameResult) => {
 
       console.log("Processing bet:", bet);
 
-      // Convert result to string
+      // ------------------------------------------
+      // CHANGE #1: Ensure result is handled as string
+      // If gameResult is object → use .result, else use directly
+      // ------------------------------------------
       const gameResultNumber = gameResult.result || gameResult;
-      const gameResultString = gameResultNumber.toString();
+      let gameResultString = String(gameResultNumber);
 
+      // ------------------------------------------
+      // CHANGE #2: If result is single digit (like "1"),
+      // treat internally as "01"
+      // Example: "1" → "01", "5" → "05"
+      // ------------------------------------------
+      if (gameResultString.length === 1) {
+        gameResultString = gameResultString.padStart(2, "0");
+      }
+
+      // ------------------------------------------
+      // CHANGE #3: Extract digits safely (handles 01–99 and 100)
+      // ------------------------------------------
+      const firstDigit = parseInt(gameResultString.charAt(0), 10); // DHAI
+      const lastDigit = parseInt(
+        gameResultString.charAt(gameResultString.length - 1),
+        10
+      ); // OPEN
+
+      // ------------------------------------------
+      // MAIN LOGIC FOR JANTARY TYPE BETS
+      // ------------------------------------------
       switch (bet.betType) {
         case "JANTARY":
-          // ----------------------------
-          // CHANGES MADE:
-          // 1. DHAI uses first digit of result
-          // 2. OPEN uses last digit of result
-          // 3. Middle digits ignored
-          // 4. Works for all numbers 1-100
-          // ----------------------------
-          const firstDigit = parseInt(gameResultString.charAt(0), 10); // DHAI
-          const lastDigit = parseInt(
-            gameResultString.charAt(gameResultString.length - 1),
-            10
-          ); // OPEN
-
           switch (bet.subBetType) {
             case "JODI":
+              // Full number match (e.g., 01, 27, 100)
               isWin = parseInt(gameResultString, 10) === bet.number;
-              winAmount = isWin ? Math.round(bet.amount * 98 * 100) / 100 : 0;
+              winAmount = isWin ? Math.trunc(bet.amount * 98) : 0;
               break;
 
             case "DHAI":
+              // First digit match (e.g., 0 from 01)
               isWin = firstDigit === bet.number;
-              winAmount = isWin ? Math.round(bet.amount * 9.8 * 100) / 100 : 0;
+              winAmount = isWin ? Math.trunc(bet.amount * 9.8) : 0;
               break;
 
             case "OPEN":
+              // Last digit match (e.g., 1 from 01)
               isWin = lastDigit === bet.number;
-              winAmount = isWin ? Math.round(bet.amount * 9.8 * 100) / 100 : 0;
+              winAmount = isWin ? Math.trunc(bet.amount * 9.8) : 0;
               break;
 
             default:
@@ -238,24 +371,30 @@ const processGameResults = async (gameId, gameResult) => {
           }
           break;
 
-        // Add other bet types here if needed
+        // ------------------------------------------
+        // Add other bet types here if needed later
+        // ------------------------------------------
         // case "CROSSING":
         // case "NO-TO-NO":
         // case "OPEN":
         //   ...
       }
 
+      // ------------------------------------------
+      // Update bet status: "won" or "lost"
+      // ------------------------------------------
       const status = isWin ? "won" : "lost";
 
-      // Update bet status
       updatePromises.push(updateBetStatus(bet._id, status, winAmount));
 
-      // Add winning bet info
+      // ------------------------------------------
+      // Collect winning bets for result summary
+      // ------------------------------------------
       if (isWin && winAmount > 0) {
         winningBets.push({
           userId: bet.userId,
           betId: bet._id,
-          winAmount: winAmount,
+          winAmount,
           betType: bet.betType,
           subBetType: bet.subBetType,
           number: bet.number,
@@ -263,6 +402,7 @@ const processGameResults = async (gameId, gameResult) => {
       }
     }
 
+    // Wait for all bets to update
     const updatedBets = await Promise.all(updatePromises);
 
     return {

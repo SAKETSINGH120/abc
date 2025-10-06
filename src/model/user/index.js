@@ -93,6 +93,7 @@ const getReferrerUser = async (referredId) => {
 };
 
 const getAllUsers = async (search, page = 1) => {
+  console.log("search", search);
   try {
     // Build filter for search if provided
     let filter = {};

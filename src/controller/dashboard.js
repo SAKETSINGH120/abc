@@ -7,8 +7,9 @@ const GameResult = require("../model/gameResult/gameResult");
 const { setApiResponse } = require("../utils/setApiResponse");
 const Payment = require("../model/payment/payment");
 const walletHistoryRepository = require("../model/walletHistory/index");
+const { authenticateAdmin } = require("../middleware/adminAuthMiddleware");
 
-router.get("/stats", async (req, res) => {
+router.get("/stats", authenticateAdmin, async (req, res) => {
   try {
     const [totalUsers, totalGames, totalBets, totalResults] = await Promise.all(
       [

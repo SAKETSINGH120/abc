@@ -4,11 +4,14 @@ const userRespository = require("../../model/user/index");
 const walletHistoryRepository = require("../../model/walletHistory/index");
 const UserWalletRepository = require("../../model/userWallet/walletIndex");
 const { setApiResponse } = require("../../utils/setApiResponse");
+const bcrypt = require("bcrypt");
+const { authenticateAdmin } = require("../../middleware/adminAuthMiddleware");
 
-router.get("/list", async (req, res, next) => {
+router.get("/list", authenticateAdmin, async (req, res, next) => {
   const { search, page = 1 } = req.query;
   try {
     const users = await userRespository.getAllUsers(search, parseInt(page));
+    console.log("users", users);
 
     if (!users || users.length === 0) {
       return setApiResponse(404, false, null, "No users found", res);
@@ -84,7 +87,7 @@ router.get("/:userId", async (req, res, next) => {
 });
 
 // Update user by ID (Admin)
-router.put("/:userId", async (req, res, next) => {
+router.put("/:userId", authenticateAdmin, async (req, res, next) => {
   const { userId } = req.params;
   const updateData = req.body;
 
@@ -128,7 +131,7 @@ router.put("/:userId", async (req, res, next) => {
 });
 
 // Delete user by ID (Admin)
-router.delete("/:userId", async (req, res, next) => {
+router.delete("/:userId", authenticateAdmin, async (req, res, next) => {
   const { userId } = req.params;
 
   try {
@@ -154,8 +157,52 @@ router.delete("/:userId", async (req, res, next) => {
     return next(error);
   }
 });
+
+// Admin: Reset a user's password
+router.put("/:userId/password", authenticateAdmin, async (req, res, next) => {
+  const { userId } = req.params;
+  const { newPassword, confirmPassword } = req.body || {};
+
+  console.log("body", req.body);
+
+  try {
+    if (!newPassword || !confirmPassword) {
+      return setApiResponse(
+        400,
+        false,
+        null,
+        "New password and confirm password are required",
+        res
+      );
+    }
+
+    if (newPassword !== confirmPassword) {
+      return setApiResponse(400, false, null, "Passwords do not match", res);
+    }
+
+    // Ensure user exists
+    const user = await userRespository.getUserById(userId);
+    if (!user) {
+      return setApiResponse(404, false, null, "User not found", res);
+    }
+
+    // Hash and update password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await userRespository.updateUserById(userId, { password: hashedPassword });
+
+    return setApiResponse(
+      200,
+      true,
+      { message: "password reset successfully" },
+      null,
+      res
+    );
+  } catch (error) {
+    return next(error);
+  }
+});
 // Get all referrals for authenticated user
-router.get("/allReferrals/all", async (req, res, next) => {
+router.get("/allReferrals/all", authenticateAdmin, async (req, res, next) => {
   try {
     const { page = 1, search } = req.query;
     console.log("jkgdsjkgdksjgb", page);
@@ -219,7 +266,7 @@ router.get("/allReferrals/all", async (req, res, next) => {
 //   }
 // });
 
-router.get("/referrals/:userId", async (req, res, next) => {
+router.get("/referrals/:userId", authenticateAdmin, async (req, res, next) => {
   console.log("🚀 REFERRALS ENDPOINT HIT - Starting...");
   try {
     console.log("come");

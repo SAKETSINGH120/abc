@@ -140,21 +140,156 @@ router.patch("/:id/status", async (req, res) => {
 });
 
 // Process game results - update all pending bets for a game
+// router.post("/game/:gameId/process-results", async (req, res) => {
+//   try {
+//     const gameId = req.params.gameId;
+
+//     // Fetch the game from database to get the actual result
+//     const game = await GameRepository.getGameById(gameId);
+//     if (!game) {
+//       return setApiResponse(404, false, null, "Game not found", res);
+//     }
+
+//     // Get today's date range in IST to ensure we fetch the latest result for today
+//     const now = DateTime.now().setZone("Asia/Kolkata");
+//     const today = now.toFormat("yyyy-LL-dd");
+
+//     // Create IST date range for today
+//     const startOfDay = DateTime.fromISO(`${today}T00:00:00`, {
+//       zone: "Asia/Kolkata",
+//     }).toJSDate();
+//     const endOfDay = DateTime.fromISO(`${today}T23:59:59`, {
+//       zone: "Asia/Kolkata",
+//     }).toJSDate();
+
+//     // Find the latest game result for today for this specific game
+//     const gameResult = await GameResult.findOne({
+//       game: gameId,
+//       createdAt: { $gte: startOfDay, $lte: endOfDay },
+//     }).sort({ createdAt: -1 }); // Get the latest result if multiple exist today
+
+//     if (!gameResult) {
+//       return setApiResponse(
+//         404,
+//         false,
+//         null,
+//         "GameResult not found for today",
+//         res
+//       );
+//     }
+//     console.log("gameResult", gameResult);
+//     // Check if game has a result declared
+//     if (!gameResult.result) {
+//       return setApiResponse(
+//         400,
+//         false,
+//         null,
+//         "Game result not declared yet. Please declare result first.",
+//         res
+//       );
+//     }
+
+//     // Check if game status is 'declared'
+//     if (game.status !== "declared") {
+//       return setApiResponse(
+//         400,
+//         false,
+//         null,
+//         "Game must be in 'declared' status to process results",
+//         res
+//       );
+//     }
+
+//     console.log(
+//       `Processing results for Game: ${game.name}, Result: ${game.result}`
+//     );
+
+//     // Process game results using the actual game result from database
+//     const result = await BetRepository.processGameResults(
+//       gameId,
+//       gameResult.result // Use the actual result from game
+//     );
+
+//     const { updatedBets, winningBets } = result;
+//     let creditedWinners = 0;
+//     let failedCredits = 0;
+
+//     // Process wallet credits for winning bets
+//     for (const winningBet of winningBets) {
+//       try {
+//         // Credit winnings to user wallet
+//         await UserWalletRepository.updateWalletBalance(
+//           winningBet.userId,
+//           winningBet.winAmount,
+//           "add"
+//         );
+
+//         // Create wallet history for the win
+//         const walletHistoryData = {
+//           userId: winningBet.userId,
+//           walletId: winningBet.userId,
+//           transactionType: "CREDIT",
+//           amount: winningBet.winAmount,
+//           status: "COMPLETED",
+//           source: "GAME_WIN",
+//           referenceId: req.params.gameId,
+//           description: `Won ${winningBet.betType} bet - ${winningBet.number}`,
+//         };
+
+//         await WalletHistoryRepository.createWalletHistory(walletHistoryData);
+//         creditedWinners++;
+
+//         console.log(
+//           `✅ Credited ${winningBet.winAmount} to user ${winningBet.userId} for winning ${winningBet.betType} bet`
+//         );
+//       } catch (walletError) {
+//         failedCredits++;
+//         console.error(
+//           `❌ Failed to credit winnings to user ${winningBet.userId}:`,
+//           walletError.message
+//         );
+//       }
+//     }
+//     // ✅ **Change game status back to 'upcoming' after processing results**
+//     // game.status = "upcoming";
+//     // await GameRepository.updateGameStatus(gameId, "upcoming");
+
+//     return setApiResponse(
+//       200,
+//       true,
+//       {
+//         gameId: gameId,
+//         gameName: game.name,
+//         gameResult: game.result,
+//         processedBets: updatedBets.length,
+//         totalWinners: winningBets.length,
+//         creditedWinners: creditedWinners,
+//         failedCredits: failedCredits,
+//         message: "Game results processed and wallets updated successfully",
+//       },
+//       null,
+//       res
+//     );
+//   } catch (error) {
+//     return setApiResponse(500, false, null, error.message, res);
+//   }
+// });
+
 router.post("/game/:gameId/process-results", async (req, res) => {
   try {
     const gameId = req.params.gameId;
 
-    // Fetch the game from database to get the actual result
+    // ✅ Fetch the game from database
     const game = await GameRepository.getGameById(gameId);
     if (!game) {
       return setApiResponse(404, false, null, "Game not found", res);
     }
 
-    // Get today's date range in IST to ensure we fetch the latest result for today
+    // ✅ Get today's date in IST
     const now = DateTime.now().setZone("Asia/Kolkata");
     const today = now.toFormat("yyyy-LL-dd");
 
-    // Create IST date range for today
+    // ✅ Create IST date range for today
     const startOfDay = DateTime.fromISO(`${today}T00:00:00`, {
       zone: "Asia/Kolkata",
     }).toJSDate();
@@ -162,11 +297,11 @@ router.post("/game/:gameId/process-results", async (req, res) => {
       zone: "Asia/Kolkata",
     }).toJSDate();
 
-    // Find the latest game result for today for this specific game
+    // ✅ Find the latest game result for today
     const gameResult = await GameResult.findOne({
       game: gameId,
       createdAt: { $gte: startOfDay, $lte: endOfDay },
-    }).sort({ createdAt: -1 }); // Get the latest result if multiple exist today
+    }).sort({ createdAt: -1 });
 
     if (!gameResult) {
       return setApiResponse(
@@ -177,8 +312,10 @@ router.post("/game/:gameId/process-results", async (req, res) => {
         res
       );
     }
+
     console.log("gameResult", gameResult);
-    // Check if game has a result declared
+
+    // ✅ Check if result is declared
     if (!gameResult.result) {
       return setApiResponse(
         400,
@@ -189,7 +326,7 @@ router.post("/game/:gameId/process-results", async (req, res) => {
       );
     }
 
-    // Check if game status is 'declared'
+    // ✅ Check game status
     if (game.status !== "declared") {
       return setApiResponse(
         400,
@@ -204,54 +341,54 @@ router.post("/game/:gameId/process-results", async (req, res) => {
       `Processing results for Game: ${game.name}, Result: ${game.result}`
     );
 
-    // Process game results using the actual game result from database
+    // ✅ Process game results using the actual result
     const result = await BetRepository.processGameResults(
       gameId,
-      gameResult.result // Use the actual result from game
+      gameResult.result
     );
 
     const { updatedBets, winningBets } = result;
     let creditedWinners = 0;
     let failedCredits = 0;
 
-    // Process wallet credits for winning bets
-    for (const winningBet of winningBets) {
-      try {
-        // Credit winnings to user wallet
-        await UserWalletRepository.updateWalletBalance(
-          winningBet.userId,
-          winningBet.winAmount,
-          "add"
-        );
+    // ✅ Process wallet credits for winning bets using Promise.all
+    await Promise.all(
+      winningBets.map(async (bet) => {
+        try {
+          // Credit winnings to user wallet
+          await UserWalletRepository.updateWalletBalance(
+            bet.userId,
+            bet.winAmount,
+            "add"
+          );
 
-        // Create wallet history for the win
-        const walletHistoryData = {
-          userId: winningBet.userId,
-          walletId: winningBet.userId,
-          transactionType: "CREDIT",
-          amount: winningBet.winAmount,
-          status: "COMPLETED",
-          source: "GAME_WIN",
-          referenceId: req.params.gameId,
-          description: `Won ${winningBet.betType} bet - ${winningBet.number}`,
-        };
+          // Create wallet history entry
+          await WalletHistoryRepository.createWalletHistory({
+            userId: bet.userId,
+            walletId: bet.userId,
+            transactionType: "CREDIT",
+            amount: bet.winAmount,
+            status: "COMPLETED",
+            source: "GAME_WIN",
+            referenceId: gameId,
+            description: `Won ${bet.betType} bet - ${bet.number}`,
+          });
 
-        await WalletHistoryRepository.createWalletHistory(walletHistoryData);
-        creditedWinners++;
+          creditedWinners++;
+          console.log(
+            `✅ Credited ${bet.winAmount} to user ${bet.userId} for winning ${bet.betType} bet`
+          );
+        } catch (walletError) {
+          failedCredits++;
+          console.error(
+            `❌ Failed to credit winnings to user ${bet.userId}:`,
+            walletError.message
+          );
+        }
+      })
+    );
 
-        console.log(
-          `✅ Credited ${winningBet.winAmount} to user ${winningBet.userId} for winning ${winningBet.betType} bet`
-        );
-      } catch (walletError) {
-        failedCredits++;
-        console.error(
-          `❌ Failed to credit winnings to user ${winningBet.userId}:`,
-          walletError.message
-        );
-      }
-    }
-    // ✅ **Change game status back to 'upcoming' after processing results**
-    // game.status = "upcoming";
+    // ✅ Optional: Change game status back to upcoming
     // await GameRepository.updateGameStatus(gameId, "upcoming");
 
     return setApiResponse(

@@ -14,6 +14,7 @@ const {
 const { validateRequest } = require("../../utils/validateRequest");
 const { setApiResponse } = require("../../utils/setApiResponse");
 const { authenticateUser } = require("../../middleware/userAuthMiddleware");
+const Settings = require("../../model/settings/index");
 
 router.post(
   "/register",
@@ -66,8 +67,11 @@ router.post(
 
         if (userWithReferral && userWithReferral.referredBy) {
           const referrerId = userWithReferral.referredBy;
-          const commissionAmount = 100; // 100rs for referrer
-          const newUserBonusAmount = 100; // 100rs bonus for new user
+
+          // Fetch referral amount from settings
+          const settings = await Settings.getAllSettings();
+          const commissionAmount = settings?.refferralAmount || 100; // fallback to 100 if not found
+          const newUserBonusAmount = settings?.refferralAmount || 100; // 100rs bonus for new user
 
           console.log("Processing referral rewards for both users");
 

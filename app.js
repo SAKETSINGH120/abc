@@ -13,7 +13,15 @@ app.use(
   })
 );
 app.use(morgan("dev"));
-app.use(cors());
+app.use(
+  cors({
+    origin: "*", // Allow all origins, or specify specific origins
+    credentials: false, // Set to false when using wildcard origin
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["Content-Range", "X-Content-Range"],
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

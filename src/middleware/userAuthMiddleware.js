@@ -14,6 +14,11 @@ const authenticateUser = (req, res, next) => {
       token,
       process.env.JWT_SECRET || "your-secret-key"
     );
+
+    // Allow only regular users
+    if (decoded.role !== "user") {
+      return res.status(403).json({ message: "Access denied. Users only." });
+    }
     req.user = decoded;
     next();
   } catch (error) {

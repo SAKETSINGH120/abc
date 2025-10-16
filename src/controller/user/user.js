@@ -137,6 +137,7 @@ router.post(
         userId: user._id,
         number: user.number,
         firstName: user.firstName,
+        role: "user",
       });
 
       const responseData = {
@@ -201,6 +202,7 @@ router.post(
         userId: user._id,
         number: user.number,
         firstName: user.firstName,
+        role: "user",
       });
 
       const responseData = {
